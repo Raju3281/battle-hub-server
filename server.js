@@ -8,7 +8,9 @@ import matchRoutes from "./routes/matchRoutes.js";
 import rechargeRoutes from "./routes/rechargeRoutes.js";
 import resultRoutes from "./routes/resultRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-
+import paymentRoutes from "./routes/paymentRoutes.js";
+import roomRoutes from "./routes/roomRoutes.js";
+import teamRoutes from "./routes/teamRoutes.js";
 dotenv.config();
 connectDB();
 
@@ -22,8 +24,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/matches", matchRoutes);
 app.use("/api/results", resultRoutes);
-import paymentRoutes from "./routes/paymentRoutes.js";
-
+app.use("/api/room", roomRoutes);
+app.use("/api/teams", teamRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/recharges", rechargeRoutes);
 app.get("/api/user/profile", verifyToken, (req, res) => {

@@ -9,6 +9,10 @@ const matchSchema = new mongoose.Schema(
     matchTime: { type: Date, required: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     status: { type: String, enum: ["upcoming", "ongoing", "completed"], default: "upcoming" },
+    matchLink: {
+      type: String,
+      default: null,
+    },
     prizeDistribution: [
       {
         rank: { type: Number, required: true },
@@ -18,6 +22,7 @@ const matchSchema = new mongoose.Schema(
     results: {
       winners: [
         {
+          teamName: String,
           userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
           rank: Number,
           kills: Number,
@@ -27,6 +32,7 @@ const matchSchema = new mongoose.Schema(
       highestKill: {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         prize: Number,
+        teamName: String,
       },
       
       remarks: String,
@@ -34,6 +40,7 @@ const matchSchema = new mongoose.Schema(
       updatedAt: Date,
     },
   },
+  
   { timestamps: true }
 );
 

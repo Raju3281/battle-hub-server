@@ -1,5 +1,7 @@
 import Match from "../models/Match.js";
-
+import Teams from "../models/Teams.js";
+import User from "../models/User.js";
+import Room from "../models/Room.js";
 // 🧩 Create a new match (Admin only)
 export const createMatch = async (req, res) => {
   try {
@@ -125,6 +127,343 @@ export const getCompletedMatches = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
+
+export const getSquadMatches = async (req, res) => {
+  try {
+    const matches = await Match.find({
+      matchType: "squad",
+      status: "upcoming",
+    }).sort({ matchTime: 1 });
+
+    res.json({ success: true, matches });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const joinMatch = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { userId, teamName, players } = req.body;
+
+    if (!userId || !teamName || !players) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing fields",
+      });
+    }
+
+    // 1️⃣ Team must contain exactly 4 players
+    if (!Array.isArray(players) || players.length !== 4) {
+      return res.status(400).json({
+        success: false,
+        message: "Team must contain exactly 4 players.",
+      });
+    }
+
+    // 2️⃣ Match existence check
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({
+        success: false,
+        message: "Match not found",
+      });
+    }
+
+    // 3️⃣ Prevent same leader from joining twice
+    const existingTeam = await Teams.findOne({ matchId, leaderId: userId });
+    if (existingTeam) {
+      return res.status(400).json({
+        success: false,
+        message: "You already registered/created a team for this match.",
+      });
+    }
+
+    // ----------------------------------------------
+    // 4️⃣ Check duplicate BGMI IDs across ALL MATCH TEAMS
+    // ----------------------------------------------
+    const bgmiIds = players.map((p) => p.inGameId);
+
+    const duplicateTeam = await Teams.findOne({
+      matchId,
+      "players.inGameId": { $in: bgmiIds },
+    });
+
+    if (duplicateTeam) {
+      // find WHICH BGMI ID is duplicate
+      const registeredIds = duplicateTeam.players.map((p) => p.inGameId);
+      const duplicateId = bgmiIds.find((id) => registeredIds.includes(id));
+
+      return res.status(400).json({
+        success: false,
+        message: `A player with BGMI ID ${duplicateId} already registered for this match.`,
+        duplicateId,
+      });
+    }
+
+    // 5️⃣ Get user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // 6️⃣ Wallet balance check
+    if (user.walletBalance < match.entryFee) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient wallet balance",
+        currentBalance: user.walletBalance,
+        required: match.entryFee,
+      });
+    }
+
+    // 7️⃣ Deduct entry fee
+    user.walletBalance -= match.entryFee;
+    await user.save();
+const existingTeamsCount = await Teams.countDocuments({ matchId });
+
+// slot = count + 1
+const slotNumber = existingTeamsCount + 1;
+    // 8️⃣ Create team (leader is included in players)
+    await Teams.create({
+      matchId,
+      leaderId: userId,
+      teamName,
+      players,
+      slotNumber,
+    });
+
+    return res.json({
+      success: true,
+      message: "Team registered successfully.",
+      newWalletBalance: user.walletBalance,
+    });
+
+  } catch (err) {
+    console.error("Join Match Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+
+
+export const getBookedMatches = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // 1️⃣ Validate user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // 2️⃣ Get all teams created by the user
+    const teams = await Teams.find({ leaderId: userId });
+    if (teams.length === 0) {
+      return res.json({
+        success: true,
+        bookedMatches: [],
+      });
+    }
+
+    const matchIds = teams.map((t) => t.matchId);
+
+    // 3️⃣ Fetch match details
+    const matches = await Match.find({ _id: { $in: matchIds } })
+      .sort({ matchTime: 1 })
+      .lean();
+
+    // 4️⃣ Fetch room details (if any)
+    const rooms = await Room.find({ matchId: { $in: matchIds } }).lean();
+
+    const roomMap = {};
+    rooms.forEach((r) => {
+      roomMap[r.matchId.toString()] = r;
+    });
+
+    // 5️⃣ Merge response
+    const finalResponse = matches.map((match) => {
+      const team = teams.find(
+        (t) => t.matchId.toString() === match._id.toString()
+      );
+
+      const room = roomMap[match._id.toString()] || null;
+
+      return {
+        matchId: match._id,
+        title: match.matchName,
+        type: match.matchType,
+        matchTime: match.matchTime,
+        entryFee: match.entryFee,
+        prizePool: match.prizePool,
+
+        // Team details
+        teamName: team.teamName,
+        players: team.players,
+
+        // Explicit room check
+        roomAvailable: room ? true : false,
+
+        roomId: room ? room.roomId : null,
+        password: room ? room.password : null,
+        roomServer: room ? room.server : null,
+        roomMap: room ? room.map : null,
+        roomNotes: room ? room.notes : null,
+      };
+    });
+
+    return res.json({
+      success: true,
+      bookedMatches: finalResponse,
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching booked matches:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+export const getMatchDetails = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+
+    const match = await Match.findById(matchId).lean();
+    if (!match) return res.status(404).json({ success: false, message: "Match not found" });
+
+    const room = await Room.findOne({ matchId }).lean();
+
+    // Get all teams sorted by slotNumber
+    const teams = await Teams.find({ matchId })
+      .sort({ slotNumber: 1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      match: {
+        matchId: match._id,
+        title: match.matchName,
+        type: match.matchType,
+        entryFee: match.entryFee,
+        prizePool: match.prizePool,
+        matchTime: match.matchTime,
+      },
+      room: room || null,
+      slots: teams.map(t => ({
+        slotNumber: t.slotNumber,
+        teamName: t.teamName,
+        players: t.players
+      }))
+    });
+
+  } catch (err) {
+    console.error("Match Detail Error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+export const getTodayCompletedMatches = async (req, res) => {
+  try {
+    // 🗓️ Get today range
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    // 🎯 Find matches where:
+    // 1. status = "completed"
+    // 2. updatedAt is today
+    const matches = await Match.find({
+      status: "completed",
+      updatedAt: { $gte: start, $lte: end },
+    })
+      .sort({ updatedAt: -1 })
+      .select(
+        "matchName matchType prizePool matchTime results topTeams topKiller updatedAt"
+      ) // select only what you need
+      .lean();
+
+    return res.json({
+      success: true,
+      matches,
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching today's completed matches:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+
+export const updateMatchLink = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { matchLink } = req.body;
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({
+        success: false,
+        message: "Match not found",
+      });
+    }
+
+    match.matchLink = matchLink;
+    await match.save();
+
+    return res.json({
+      success: true,
+      message: "Match link updated successfully",
+      matchLink: match.matchLink,
+    });
+
+  } catch (error) {
+    console.error("Error updating match link:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getAllMatchesWithLinks = async (req, res) => {
+  try {
+    const matches = await Match.find({
+      matchLink: { $ne: null }
+    }).select("matchName matchType map matchTime matchLink");
+
+    return res.json({
+      success: true,
+      matches
+    });
+
+  } catch (err) {
+    console.error("Error fetching match links:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+
+
 
 
 
