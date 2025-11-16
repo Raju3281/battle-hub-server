@@ -251,8 +251,29 @@ const slotNumber = existingTeamsCount + 1;
     });
   }
 };
+export const getMatchFee = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const match = await Match.findById(matchId).select("entryFee");
 
-
+    if (!match) {
+      return res.status(404).json({
+        success: false,
+        message: "Match not found",
+      });
+    }
+    return res.json({
+      success: true,
+      entryFee: match.entryFee,
+    });
+  } catch (err) {
+    console.error("Get Match Fee Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+}
 
 export const getBookedMatches = async (req, res) => {
   try {

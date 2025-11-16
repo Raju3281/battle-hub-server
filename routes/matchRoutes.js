@@ -1,7 +1,8 @@
 import express from "express";
 import { createMatch, getMatches, getMatchById, updateMatch, getCompletedMatches,
     getSquadMatches, joinMatch, getBookedMatches, getMatchDetails, 
-    getTodayCompletedMatches, updateMatchLink, getAllMatchesWithLinks } from "../controllers/matchController.js";
+    getTodayCompletedMatches, updateMatchLink, getAllMatchesWithLinks, 
+    getMatchFee} from "../controllers/matchController.js";
 import { verifyAdmin, verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -25,6 +26,8 @@ router.post("/join/:matchId", verifyToken,joinMatch);
 router.get("/booked/:userId",verifyToken, getBookedMatches);
 router.get("/details/:matchId",verifyToken, getMatchDetails);
 router.get("/completed/today",verifyToken, getTodayCompletedMatches);
+router.get("/matchFee/:matchId",verifyToken, getMatchFee);
+
 
 router.post("/match-link/:matchId", verifyAdmin, updateMatchLink);
 router.get("/with-links",verifyToken, getAllMatchesWithLinks);

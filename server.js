@@ -11,13 +11,14 @@ import userRoutes from "./routes/userRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import roomRoutes from "./routes/roomRoutes.js";
 import teamRoutes from "./routes/teamRoutes.js";
+import walletRoutes from "./routes/walletRoutes.js";
 dotenv.config();
 connectDB();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+app.use(express.urlencoded({ extended: true, limit: '10mb'  }));
 // Routes
 
 app.use("/api/users", userRoutes);
@@ -28,6 +29,8 @@ app.use("/api/room", roomRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/recharges", rechargeRoutes);
+app.use("/api/wallet", walletRoutes);
+
 app.get("/api/user/profile", verifyToken, (req, res) => {
   res.json({
     message: "✅ Welcome to your profile!",
@@ -41,6 +44,19 @@ app.get("/api/admin/dashboard", verifyAdmin, (req, res) => {
     message: "🛡️ Welcome Admin!",
     user: req.user,
   });
+});
+app.use((req, res, next) => {
+  console.log("=== REQUEST DEBUG ===");
+  console.log("URL:", req.originalUrl);
+  console.log("Method:", req.method);
+  console.log("Headers:", JSON.stringify(req.headers, null, 2));
+  // Only log small bodies to avoid huge logs
+  let size = req.headers['content-length'] || 'unknown';
+  console.log("Content-Length:", size);
+  // Attempt to print body — may be undefined if not parsed yet
+  console.log("Body (may be undefined):", req.body);
+  console.log("=====================");
+  next();
 });
 app.get("/", (req, res) => res.send("BattleHub API running..."));
 

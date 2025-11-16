@@ -3,6 +3,7 @@ import {
   uploadPayment,
   approvePayment,
   getPendingPayments,
+  getWalletBalance,
 } from "../controllers/paymentController.js";
 import { verifyToken, verifyAdmin } from "../middlewares/authMiddleware.js";
 
@@ -17,5 +18,6 @@ router.get("/pending", verifyAdmin, getPendingPayments);
 // ✅ Admin approves/rejects payment
 router.put("/approve/:id", verifyAdmin, approvePayment);
 router.put("/reject/:id", verifyAdmin, approvePayment);
+router.get("/balance/:id", verifyToken, getWalletBalance);
 
 export default router;
