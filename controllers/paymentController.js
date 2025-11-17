@@ -93,7 +93,7 @@ export const approvePayment = async (req, res) => {
 export const getPendingPayments = async (req, res) => {
   try {
     const pending = await WalletTransaction.find({ status: "pending" })
-      .populate("userId", "username phone")
+      .populate("userId", "username phone upi")
       .populate("matchId", "matchName matchType prizePool");
     res.status(200).json(pending);
   } catch (error) {

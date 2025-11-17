@@ -162,7 +162,18 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 2️⃣ Match existence check
+    // 2️⃣ Check duplicate IDs WITHIN THE SAME TEAM
+    const bgmiIds = players.map((p) => p.inGameId);
+    const hasInternalDup = new Set(bgmiIds).size !== bgmiIds.length;
+
+    if (hasInternalDup) {
+      return res.status(400).json({
+        success: false,
+        message: "Duplicate BGMI IDs found inside your team. Each ID must be unique.",
+      });
+    }
+
+    // 3️⃣ Match existence check
     const match = await Match.findById(matchId);
     if (!match) {
       return res.status(404).json({
@@ -171,7 +182,20 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 3️⃣ Prevent same leader from joining twice
+    // 4️⃣ Registration closes 15 min before match time
+    const FIVE_HOURS_30_MIN = 5.5 * 60 * 60 * 1000;  // 5h 30m
+            const FIFTEEN_MIN = 15 * 60 * 1000;
+    const matchTime = new Date(match.matchTime);
+    const registrationClose = new Date(matchTime.getTime() - FIVE_HOURS_30_MIN-FIFTEEN_MIN);
+
+    if (new Date() > registrationClose) {
+      return res.status(400).json({
+        success: false,
+        message: "Registration time ended. You cannot join now.",
+      });
+    }
+
+    // 5️⃣ Prevent same leader from joining twice
     const existingTeam = await Teams.findOne({ matchId, leaderId: userId });
     if (existingTeam) {
       return res.status(400).json({
@@ -180,29 +204,23 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // ----------------------------------------------
-    // 4️⃣ Check duplicate BGMI IDs across ALL MATCH TEAMS
-    // ----------------------------------------------
-    const bgmiIds = players.map((p) => p.inGameId);
-
+    // 6️⃣ Check duplicate BGMI IDs across ALL TEAMS OF THIS MATCH
     const duplicateTeam = await Teams.findOne({
       matchId,
       "players.inGameId": { $in: bgmiIds },
     });
 
     if (duplicateTeam) {
-      // find WHICH BGMI ID is duplicate
       const registeredIds = duplicateTeam.players.map((p) => p.inGameId);
       const duplicateId = bgmiIds.find((id) => registeredIds.includes(id));
 
       return res.status(400).json({
         success: false,
-        message: `A player with BGMI ID ${duplicateId} already registered for this match.`,
-        duplicateId,
+        message: `A player with BGMI ID ${duplicateId} is already registered in another team for this match.`,
       });
     }
 
-    // 5️⃣ Get user
+    // 7️⃣ Get user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -211,7 +229,7 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 6️⃣ Wallet balance check
+    // 8️⃣ Wallet balance check
     if (user.walletBalance < match.entryFee) {
       return res.status(400).json({
         success: false,
@@ -221,14 +239,15 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 7️⃣ Deduct entry fee
+    // 9️⃣ Deduct entry fee
     user.walletBalance -= match.entryFee;
     await user.save();
-const existingTeamsCount = await Teams.countDocuments({ matchId });
 
-// slot = count + 1
-const slotNumber = existingTeamsCount + 1;
-    // 8️⃣ Create team (leader is included in players)
+    // 🔟 Assign slot number (increment by existing count)
+    const existingTeamsCount = await Teams.countDocuments({ matchId });
+    const slotNumber = existingTeamsCount + 1;
+
+    // 1️⃣1️⃣ Create team
     await Teams.create({
       matchId,
       leaderId: userId,
@@ -251,6 +270,7 @@ const slotNumber = existingTeamsCount + 1;
     });
   }
 };
+
 export const getMatchFee = async (req, res) => {
   try {
     const { matchId } = req.params;
@@ -340,6 +360,7 @@ export const getBookedMatches = async (req, res) => {
         roomServer: room ? room.server : null,
         roomMap: room ? room.map : null,
         roomNotes: room ? room.notes : null,
+        status: match.status,
       };
     });
 
