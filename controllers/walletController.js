@@ -80,14 +80,28 @@ export const updateWalletTransactionStatus = async (req, res) => {
         }
         // REJECT FLOW
         if (status === "rejected") {
+
+            const user = await User.findById(tx.userId);
+            if (!user) return res.status(404).json({ message: "User not found" });
+
+            // Refund only if it's a withdrawal
+            if (tx.type === "debit" && tx.source === "withdrawal") {
+                user.walletBalance = Number(user.walletBalance) + Number(tx.amount);
+                await user.save();
+            }
+
             tx.status = "rejected";
+            tx.balanceAfter = user.walletBalance;
             await tx.save();
 
             return res.json({
                 message: "Transaction rejected successfully",
+                refunded: tx.type === "debit" && tx.source === "withdrawal" ? tx.amount : 0,
+                balance: user.walletBalance,
                 transaction: tx,
             });
         }
+
 
     } catch (error) {
         console.error("Wallet Status Update Error:", error);
@@ -116,7 +130,7 @@ export const withdrawalRequest = async (req, res) => {
         // Deduct balance
         user.walletBalance = Number(user.walletBalance) - Number(amount);
         await user.save();
-        tx.status = "approved";
+        // tx.status = "approved";
         tx.balanceAfter = user.walletBalance;
         await tx.save();
         res.status(201).json({ message: "Withdrawal request successful", tx, balance: user.walletBalance });
@@ -125,3 +139,28 @@ export const withdrawalRequest = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
+
+export const getWalletHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // validate
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // fetch all transactions of user
+    const transactions = await WalletTransaction.find({ userId })
+      .sort({ createdAt: -1 }) // newest first
+     .select("-screenshot");
+    return res.json({
+      success: true,
+      transactions,
+    });
+
+  } catch (error) {
+    console.error("Wallet History Error:", error);
+    res.status(500).json({ message: "Server error while fetching history" });
+  }
+};
+

@@ -1,5 +1,5 @@
 import express from "express";
-import { createRechargeTransaction, updateWalletTransactionStatus, withdrawalRequest } from "../controllers/walletController.js";
+import { createRechargeTransaction, getWalletHistory, updateWalletTransactionStatus, withdrawalRequest } from "../controllers/walletController.js";
 import { verifyAdmin, verifyToken } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 
@@ -14,5 +14,7 @@ router.put(
   updateWalletTransactionStatus
 );
 router.post("/withdraw", verifyToken, withdrawalRequest);
+router.get("/history/:userId", verifyToken, getWalletHistory);
+
 
 export default router;
