@@ -54,7 +54,23 @@ export const updateWalletTransactionStatus = async (req, res) => {
 
         // APPROVE FLOW
         if (status === "approved") {
+             if(tx.type === "debit" && tx.source === "withdrawal") {
 
+
+
+                const user = await User.findById(tx.userId);
+                if (!user) return res.status(404).json({ message: "User not found" });
+
+                tx.status = "approved";
+                tx.amount = amount !== 0 ? amount : tx.amount;;
+                tx.balanceAfter = user.walletBalance;
+                await tx.save();
+                return res.json({
+                message: "Withdrawal approved successfully",
+                balance: user.walletBalance,
+                transaction: tx,
+            });
+            }
             //   if (tx.type !== "credit" || tx.source !== "recharge") {
             //     return res.status(400).json({ message: "Only recharge can be approved" });
             //   }
