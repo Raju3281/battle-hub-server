@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     walletBalance: { type: Number, default: 0 },
     isBlocked: { type: Boolean, default: false },
     upi: { type: String },
+    email: { type: String, required: true, unique: true },
   },
   { timestamps: true }
 );
