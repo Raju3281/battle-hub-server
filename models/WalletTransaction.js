@@ -9,7 +9,7 @@ const walletTransactionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected","joined"],
       default: "pending",
     },
     // credit = user adds money

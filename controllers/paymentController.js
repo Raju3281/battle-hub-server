@@ -28,6 +28,9 @@ export const uploadPayment = async (req, res) => {
     if (!screenshotUrl) {
       return res.status(400).json({ message: "screenshotUrl is required" });
     }
+    if (amount <50 ||amount < '50') {
+      return res.status(400).json({ message: "Minimum Rs.50 is required" });
+    }
 
     // Create payment record (adjust fields to your model)
     const payment = await Payment.create({

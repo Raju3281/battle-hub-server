@@ -77,7 +77,9 @@ export const updateRoomDetails = async (req, res) => {
            const matchDate= parseDate(match.matchTime)
             const FIFTEEN_MIN = 15 * 60 * 1000;
 
+            // const regEnd = new Date(matchDate.getTime() - FIVE_HOURS_30_MIN);
             const regEnd = new Date(matchDate.getTime() - FIVE_HOURS_30_MIN);
+
       const html = `
         <div style="font-family: Arial, sans-serif; line-height: 1.6;">
           <h2 style="color:#FACC15; margin-bottom: 8px;">BattleHub Room Details</h2>

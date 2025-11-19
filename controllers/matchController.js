@@ -2,6 +2,7 @@ import Match from "../models/Match.js";
 import Teams from "../models/Teams.js";
 import User from "../models/User.js";
 import Room from "../models/Room.js";
+import WalletTransaction from "../models/WalletTransaction.js";
 // 🧩 Create a new match (Admin only)
 export const createMatch = async (req, res) => {
   try {
@@ -242,6 +243,16 @@ export const joinMatch = async (req, res) => {
     // 9️⃣ Deduct entry fee
     user.walletBalance -= match.entryFee;
     await user.save();
+
+     const transaction = await WalletTransaction.create({
+      userId,
+      matchId,
+      amount: match.entryFee,
+      type: "debit",
+      source: "match_prize",
+      status: "joined",
+      balanceAfter: user.walletBalance,
+    });
 
     // 🔟 Assign slot number (increment by existing count)
     const existingTeamsCount = await Teams.countDocuments({ matchId });

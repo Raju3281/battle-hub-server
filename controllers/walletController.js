@@ -136,6 +136,9 @@ export const withdrawalRequest = async (req, res) => {
         if (amount > user.walletBalance) {
             return res.status(400).json({ message: "Insufficient wallet balance" });
         }
+        if(amount <50 || amount < '50') {
+          return res.status(400).json({ message: "Minimum Rs.100 withdrawal required" });
+        }
         const tx = await WalletTransaction.create({
             userId,
             type: "debit",
