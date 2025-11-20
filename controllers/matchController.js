@@ -255,8 +255,22 @@ export const joinMatch = async (req, res) => {
     });
 
     // 🔟 Assign slot number (increment by existing count)
+    // const existingTeamsCount = await Teams.countDocuments({ matchId });
+    // const slotNumber = existingTeamsCount + 1;
+
+    // 🔟 Assign slot number (limit to max 20 teams) & start at slot 2
     const existingTeamsCount = await Teams.countDocuments({ matchId });
-    const slotNumber = existingTeamsCount + 1;
+
+    // Prevent more than 20 teams (slots 2–21 = 20 slots)
+    if (existingTeamsCount >= 20) {
+      return res.status(400).json({
+        success: false,
+        message: "All slots are filled (20 teams max).",
+      });
+    }
+
+    // Slot number starts from 2
+    const slotNumber = existingTeamsCount + 2;
 
     // 1️⃣1️⃣ Create team
     await Teams.create({
