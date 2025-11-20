@@ -28,7 +28,7 @@ export const uploadPayment = async (req, res) => {
     if (!screenshotUrl) {
       return res.status(400).json({ message: "screenshotUrl is required" });
     }
-    if (amount <50 ||amount < '50') {
+    if (amount <20 ||amount < '20') {
       return res.status(400).json({ message: "Minimum Rs.50 is required" });
     }
 
