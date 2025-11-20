@@ -29,12 +29,28 @@ export const registerUser = async (req, res) => {
     }
 
     // 4️⃣ Check if user exists by username, phone, or email
-    const exists = await User.findOne({
-      $or: [{ username }, { phone }, { email }],
+    const usernameExists = await User.findOne({
+      $or: [{ username }],
     });
-    if (exists) {
+    const emailExists = await User.findOne({
+      $or: [{ email }],
+    });
+    const phoneExists = await User.findOne({
+      $or: [{ phone }],
+    });
+    if (usernameExists) {
       return res.status(400).json({
-        message: "Username, Phone, or Email already taken",
+        message: "Username already taken, try with other username",
+      });
+    }
+    if (emailExists) {
+      return res.status(400).json({
+        message: "Email already exists, try with other email",
+      });
+    }
+    if (phoneExists) {
+      return res.status(400).json({
+        message: "Phone number already exists, try with other phone number",
       });
     }
 
@@ -140,6 +156,7 @@ export const sendForgotPasswordOtp = async (req, res) => {
       "BattleHub Password Reset OTP",
       `
       <h2>BattleHub Password Reset</h2>
+      <p>Your User name is: <b>${user.username}</p>
       <p>Your OTP to reset your password:</p>
       <h1 style="letter-spacing:4px;color:#FACC15;">${otp}</h1>
       <p>Valid for <b>10 minutes</b>.</p>
