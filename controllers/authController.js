@@ -3,10 +3,11 @@ import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import Otp from "../models/Otp.js";
 import { sendMail } from "../utils/sendEmail.js";
+import WalletTransaction from "../models/WalletTransaction.js";
 // 🧩 Register new user (not admin)
 export const registerUser = async (req, res) => {
   try {
-    const { username, phone, email, password } = req.body;
+    const { username, phone, email, password, referralCode } = req.body;
 
     // 1️⃣ Basic validation
     if (!username || !phone || !email || !password) {
@@ -28,16 +29,11 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // 4️⃣ Check if user exists by username, phone, or email
-    const usernameExists = await User.findOne({
-      $or: [{ username }],
-    });
-    const emailExists = await User.findOne({
-      $or: [{ email }],
-    });
-    const phoneExists = await User.findOne({
-      $or: [{ phone }],
-    });
+    // 4️⃣ Check if username / email / phone already exist
+    const usernameExists = await User.findOne({ username });
+    const emailExists = await User.findOne({ email });
+    const phoneExists = await User.findOne({ phone });
+
     if (usernameExists) {
       return res.status(400).json({
         message: "Username already taken, try with other username",
@@ -54,30 +50,64 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // 5️⃣ Hash password
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 6️⃣ Create user
-    const user = await User.create({
+    // ✳️ Create user (but not saved yet)
+    const newUser = new User({
       username,
       phone,
       email,
       password: hashedPassword,
       role: "user",
+      referredBy: referralCode || null,
     });
+     const generatedCode =
+      username.toUpperCase() + newUser._id.toString().slice(-4);
 
-    // 7️⃣ Send safe response (without password)
-    const { password: _, ...safeUser } = user.toObject();
+    newUser.referralCode = generatedCode;
+    // 💸 Referral Logic — Only reward referrer, not new user
+   if (referralCode) {
+      const referrer = await User.findOne({ referralCode: referralCode.trim() });
+
+      if (referrer) {
+        // 👉 Save referrer's _id in referredBy
+        newUser.referredBy = referrer._id;
+
+        // Add bonus to referrer
+        referrer.walletBalance = (referrer.walletBalance || 0) + 5;
+        await referrer.save();
+
+        // Create Wallet Transaction
+        await WalletTransaction.create({
+          userId: referrer._id,
+          type: "credit",
+          amount: 5,
+          status: "approved",
+          source: "referral_bonus",
+          balanceAfter: referrer.walletBalance,
+        });
+      }
+    }
+
+    // Save new user finally
+    await newUser.save();
+
+    // Remove password before sending response
+    const { password: _, ...safeUser } = newUser.toObject();
 
     res.status(201).json({
+      success: true,
       message: "User registered successfully 🎉",
       user: safeUser,
     });
+
   } catch (error) {
     console.error("Error in user registration:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 
 export const loginUser = async (req, res) => {

@@ -36,7 +36,7 @@ const walletTransactionSchema = new mongoose.Schema(
     // withdrawal → user withdrawal
     source: {
       type: String,
-      enum: ["recharge", "match_prize", "highest_kill", "withdrawal"],
+      enum: ["recharge", "match_prize", "highest_kill", "withdrawal","referral_bonus"],
       required: true,
     },
 

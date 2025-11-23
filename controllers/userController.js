@@ -6,9 +6,11 @@ import WalletTransaction from "../models/WalletTransaction.js";
  */
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: { $ne: "admin" } })
-      .select("-password")
-      .sort({ createdAt: -1 });
+   const users = await User.find({ role: { $ne: "admin" } })
+  .select("-password")
+  .sort({ createdAt: -1 })
+  .populate("referredBy", "username email");
+
 
     res.json({
       message: "✅ Registered users fetched successfully!",
@@ -20,6 +22,7 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ message: "❌ Failed to fetch users", error: error.message });
   }
 };
+
 
 /**
  * 🚫 Block a user
@@ -133,6 +136,77 @@ export const getUserById = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+}
+
+export const getReferralInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select("referralCode referredBy");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    let referrerInfo = null;
+    if (user.referredBy) {
+      const referrer = await User.findById(user.referredBy).select("username email");
+      if (referrer) {
+        referrerInfo = referrer;
+      }
+    }
+    res.json({
+      message: "Referral info fetched successfully",
+      referralCode: user.referralCode,
+      referredBy: referrerInfo,
+    });
+  } catch (error) {
+    console.error("Error fetching referral info:", error);
+    res.status(500).json({ message: "Server Error" });
+  } 
+};
+
+// 📌 GET /refer/history/:userId
+export const getReferralHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+   console.log("Fetching referral history for userId:", userId);
+    // Find current user to get referralCode
+    const currentUser = await User.findById(userId).select("referredBy referralCode");
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Find all users who registered using this referral code
+    const referredUsers = await User.find({ referredBy: userId })
+      .select("username email phone createdAt")
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      referralCode: currentUser.referralCode,
+      totalReferred: referredUsers.length,
+      totalEarned: referredUsers.length * 5, // ₹5 per referral
+      referredUsers,
+    });
+
+  } catch (error) {
+    console.error("Referral history error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
+export const getAllReferralInfoToAdmin = async (req, res) => {
+  try {
+    const users = await User.find()
+      .select("username email referralCode referredBy")
+      .lean();
+    res.json({
+      message: "All referral info fetched successfully",
+      users,
+    });
+  } catch (error) {
+    console.error("Error fetching all referral info:", error);
     res.status(500).json({ message: "Server Error" });
   }
 }

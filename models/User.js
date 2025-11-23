@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
     isBlocked: { type: Boolean, default: false },
     upi: { type: String },
     email: { type: String, required: true, unique: true },
+    referralCode: { type: String, required: false, unique: true },
+    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, 
   },
   { timestamps: true }
 );
