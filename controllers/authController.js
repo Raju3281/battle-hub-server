@@ -60,7 +60,7 @@ export const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       role: "user",
-      referredBy: referralCode || null,
+      referredBy: null,
     });
      const generatedCode =
       username.toUpperCase() + newUser._id.toString().slice(-4);
@@ -68,7 +68,7 @@ export const registerUser = async (req, res) => {
     newUser.referralCode = generatedCode;
     // 💸 Referral Logic — Only reward referrer, not new user
    if (referralCode) {
-      const referrer = await User.findOne({ referralCode: referralCode.trim() });
+      const referrer = await User.findOne({ referralCode: referralCode });
 
       if (referrer) {
         // 👉 Save referrer's _id in referredBy
@@ -87,6 +87,8 @@ export const registerUser = async (req, res) => {
           source: "referral_bonus",
           balanceAfter: referrer.walletBalance,
         });
+      }else{
+        return res.status(400).json({ message: "Invalid referral code" });
       }
     }
 
