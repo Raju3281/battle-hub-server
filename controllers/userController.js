@@ -178,7 +178,7 @@ export const getReferralHistory = async (req, res) => {
 
     // Find all users who registered using this referral code
     const referredUsers = await User.find({ referredBy: userId })
-      .select("username email phone createdAt")
+      .select("username phone createdAt")
       .sort({ createdAt: -1 });
 
     res.json({
