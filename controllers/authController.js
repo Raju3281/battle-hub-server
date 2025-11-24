@@ -114,19 +114,19 @@ export const registerUser = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    const { usernameOrPhone, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!usernameOrPhone || !password) {
+    if (!email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     // 🕵️ Find user by username OR phone
     const user = await User.findOne({
-      $or: [{ username: usernameOrPhone }, { phone: usernameOrPhone }],
+      $or: [{ email: email }],
     });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "Email Doesn't Exist" });
     }
 
     // 🔐 Compare passwords
@@ -137,7 +137,7 @@ export const loginUser = async (req, res) => {
 
     // ❌ Check if blocked
     if (user.isBlocked) {
-      return res.status(403).json({ message: "Your account is blocked" });
+      return res.status(403).json({ message: "Your account is blocked, Please contact admin" });
     }
 
     // 🎟️ Create JWT token
