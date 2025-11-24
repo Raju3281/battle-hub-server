@@ -75,7 +75,7 @@ export const registerUser = async (req, res) => {
         newUser.referredBy = referrer._id;
 
         // Add bonus to referrer
-        referrer.walletBalance = (referrer.walletBalance || 0) + 5;
+        referrer.referralBalance = (referrer.referralBalance || 0) + 5;
         await referrer.save();
 
         // Create Wallet Transaction
@@ -85,7 +85,7 @@ export const registerUser = async (req, res) => {
           amount: 5,
           status: "approved",
           source: "referral_bonus",
-          balanceAfter: referrer.walletBalance,
+          balanceAfter: referrer.referralBalance,
         });
       }else{
         return res.status(400).json({ message: "Invalid referral code" });

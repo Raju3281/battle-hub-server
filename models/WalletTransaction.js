@@ -28,7 +28,7 @@ const walletTransactionSchema = new mongoose.Schema(
   type: mongoose.Schema.Types.ObjectId,
   ref: "Match",
   required: false,
-},
+  },
 
     // recharge → while uploading screenshot
     // match_prize → winnings
@@ -54,6 +54,14 @@ const walletTransactionSchema = new mongoose.Schema(
     // Wallet balance after this transaction
     balanceAfter: {
       type: Number,
+    },
+    referralUsed: {
+      type: Number,
+      default: 0,
+    },
+     walletUsed: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }

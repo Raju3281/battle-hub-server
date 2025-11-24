@@ -160,6 +160,7 @@ export const getWalletBalance = async (req, res) => {
     return res.json({
       success: true,
       balance: user.walletBalance,
+      referralBalance: user.referralBalance,
     });
   } catch (err) {
     console.error("Wallet API Error:", err);

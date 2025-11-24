@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     referralCode: { type: String, required: false, unique: true },
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, 
+    referralBalance: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

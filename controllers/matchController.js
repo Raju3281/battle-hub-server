@@ -185,9 +185,9 @@ export const joinMatch = async (req, res) => {
 
     // 4️⃣ Registration closes 15 min before match time
     const FIVE_HOURS_30_MIN = 5.5 * 60 * 60 * 1000;  // 5h 30m
-            const FIFTEEN_MIN = 15 * 60 * 1000;
+    const FIFTEEN_MIN = 15 * 60 * 1000;
     const matchTime = new Date(match.matchTime);
-    const registrationClose = new Date(matchTime.getTime() - FIVE_HOURS_30_MIN-FIFTEEN_MIN);
+    const registrationClose = new Date(matchTime.getTime() - FIVE_HOURS_30_MIN - FIFTEEN_MIN);
 
     if (new Date() > registrationClose) {
       return res.status(400).json({
@@ -231,28 +231,51 @@ export const joinMatch = async (req, res) => {
     }
 
     // 8️⃣ Wallet balance check
-    if (user.walletBalance < match.entryFee) {
+    // 8️⃣ Calculate total available balance (referral + wallet)
+    const totalAvailable = (user.referralBalance || 0) + (user.walletBalance || 0);
+
+    if (totalAvailable < match.entryFee) {
       return res.status(400).json({
         success: false,
-        message: "Insufficient wallet balance",
-        currentBalance: user.walletBalance,
+        message: "Insufficient balance. Use referral balance or wallet to add funds.",
+        referralBalance: user.referralBalance || 0,
+        walletBalance: user.walletBalance || 0,
         required: match.entryFee,
       });
     }
 
-    // 9️⃣ Deduct entry fee
-    user.walletBalance -= match.entryFee;
+    // 9️⃣ Deduct entry fee: referralBalance first, then walletBalance
+    let remainingFee = match.entryFee;
+
+    // 9a️⃣ Deduct from referralBalance (if available)
+    if (user.referralBalance > 0) {
+      const useReferral = Math.min(user.referralBalance, remainingFee);
+      user.referralBalance -= useReferral;
+      remainingFee -= useReferral;
+    }
+
+    // 9b️⃣ Deduct remaining from walletBalance
+    if (remainingFee > 0) {
+      user.walletBalance -= remainingFee;
+    }
+
+    // Save user after deduction
     await user.save();
 
-     const transaction = await WalletTransaction.create({
+    // 9️⃣🔹Log a wallet transaction properly
+    await WalletTransaction.create({
       userId,
       matchId,
       amount: match.entryFee,
       type: "debit",
+      status: "approved",
       source: "match_prize",
       status: "joined",
+      referralUsed: match.entryFee - remainingFee,
+      walletUsed: remainingFee,
       balanceAfter: user.walletBalance,
     });
+
 
     // 🔟 Assign slot number (increment by existing count)
     // const existingTeamsCount = await Teams.countDocuments({ matchId });
