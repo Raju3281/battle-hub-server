@@ -4,6 +4,7 @@ import Room from "../models/Room.js";
 import Teams from "../models/Teams.js";       // ⬅️ adjust path if needed
 import { sendMail } from "../utils/sendEmail.js"; // ⬅️ your existing mail util
 import Match from "../models/Match.js";     // optional, just to show match name
+import moment from "moment";
 
 export const updateRoomDetails = async (req, res) => {
   try {
@@ -52,33 +53,28 @@ export const updateRoomDetails = async (req, res) => {
 
     // 🔹 3. Fetch all teams in this match, with leader details
     const teams = await Teams.find({ matchId }).populate("leaderId", "email username");
-   const parseDate = (value) => {
-  if (!value) return null;
+    const parseDate = (value) => {
+      if (!value) return null;
 
-  if (!isNaN(Number(value))) {
-    const num = Number(value);
-    const ms = num.toString().length === 10 ? num * 1000 : num;
-    const d = new Date(ms);
-    return isNaN(d.getTime()) ? null : d;
-  }
+      if (!isNaN(Number(value))) {
+        const num = Number(value);
+        const ms = num.toString().length === 10 ? num * 1000 : num;
+        const d = new Date(ms);
+        return isNaN(d.getTime()) ? null : d;
+      }
 
-  const d = new Date(value);
-  if (!isNaN(d.getTime())) return d;
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) return d;
 
-  return null;
-};
+      return null;
+    };
     // 🔹 4. Send mail to each leader (who has an email)
     const emailPromises = teams.map((team) => {
       const leader = team.leaderId;
+      const slotNumber = team.slotNumber;
       if (!leader || !leader.email) return null;
 
       const subject = `Room Details for ${match?.matchName || "BattleHub Match"}`;
- const FIVE_HOURS_30_MIN = 5.5 * 60 * 60 * 1000;  // 5h 30m
-           const matchDate= parseDate(match.matchTime)
-            const FIFTEEN_MIN = 15 * 60 * 1000;
-
-            // const regEnd = new Date(matchDate.getTime() - FIVE_HOURS_30_MIN);
-            const regEnd = new Date(matchDate.getTime() - FIVE_HOURS_30_MIN);
 
       const html = `
         <div style="font-family: Arial, sans-serif; line-height: 1.6;">
@@ -93,14 +89,14 @@ export const updateRoomDetails = async (req, res) => {
             ${room.server ? `<li><b>Server:</b> ${room.server}</li>` : ""}
             ${room.map ? `<li><b>Map:</b> ${room.map}</li>` : ""}
           </ul>
-
-          ${match?.matchTime
-          ? `<p><b>Match Time:</b> ${new Date(regEnd).toLocaleString(
-            "en-IN",
-            { hour12: true }
-          )}</p>`
+          ${slotNumber
+          ? `<p><b>Slot No. </b> ${slotNumber}</p>`
           : ""
-        }
+          }
+          ${match?.matchTime
+          ? `<p><b>Match Time:</b> ${moment(match.matchTime).utc().format("hh:mm A")}</p>`
+          : ""
+          }
 
           ${room.notes
           ? `<p style="margin-top:8px;"><b>Notes:</b> ${room.notes}</p>`
