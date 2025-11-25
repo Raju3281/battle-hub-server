@@ -82,6 +82,7 @@ export const updateRoomDetails = async (req, res) => {
           <p>Hi <b>${leader.username || "Player"}</b>,</p>
           <p>Here are the room details for your upcoming match${match?.matchName ? ` <b>${match.matchName}</b>` : ""
         }:</p>
+        <p>Please be seated in your slot only</b>,</p>
 
           <ul style="list-style:none;padding-left:0;">
             <li><b>Room ID:</b> ${room.roomId}</li>
@@ -94,7 +95,7 @@ export const updateRoomDetails = async (req, res) => {
           : ""
           }
           ${match?.matchTime
-          ? `<p><b>Match Time:</b> ${moment(match.matchTime).utc().format("hh:mm A")}</p>`
+          ? `<p><b>Match Time:</b> ${moment(match.matchTime).utc().format("DD/MM/YYYY hh:mm A")}</p>`
           : ""
           }
 
