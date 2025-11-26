@@ -10,6 +10,7 @@ export const createMatch = async (req, res) => {
       matchName,
       matchType,
       entryFee,
+      matchMap,
       prizePool,
       matchTime,
       prizeDistribution,
@@ -28,6 +29,7 @@ export const createMatch = async (req, res) => {
       entryFee,
       prizePool,
       matchTime,
+      matchMap: matchMap || "",
       createdBy: req.user.id,
       prizeDistribution: prizeDistribution || [],
       highestKillBonus: highestKillBonus || 0,
@@ -142,39 +144,30 @@ export const getSquadMatches = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
+export const getTdmMatches = async (req, res) => {
+  try {
+    const matches = await Match.find({
+      matchType: "tdm",
+      status: "upcoming",
+    }).sort({ matchTime: 1 });
+    res.json({ success: true, matches });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 export const joinMatch = async (req, res) => {
   try {
     const { matchId } = req.params;
     const { userId, teamName, players } = req.body;
 
-    if (!userId || !teamName || !players) {
+    if (!userId || !players) {
       return res.status(400).json({
         success: false,
         message: "Missing fields",
       });
     }
 
-    // 1️⃣ Team must contain exactly 4 players
-    if (!Array.isArray(players) || players.length !== 4) {
-      return res.status(400).json({
-        success: false,
-        message: "Team must contain exactly 4 players.",
-      });
-    }
-
-    // 2️⃣ Check duplicate IDs WITHIN THE SAME TEAM
-    const bgmiIds = players.map((p) => p.inGameId);
-    const hasInternalDup = new Set(bgmiIds).size !== bgmiIds.length;
-
-    if (hasInternalDup) {
-      return res.status(400).json({
-        success: false,
-        message: "Duplicate BGMI IDs found inside your team. Each ID must be unique.",
-      });
-    }
-
-    // 3️⃣ Match existence check
+    // 🎯 Get Match
     const match = await Match.findById(matchId);
     if (!match) {
       return res.status(404).json({
@@ -183,45 +176,74 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 4️⃣ Registration closes 15 min before match time
-    const FIVE_HOURS_30_MIN = 5.5 * 60 * 60 * 1000;  // 5h 30m
-    const FIFTEEN_MIN = 15 * 60 * 1000;
-    const matchTime = new Date(match.matchTime);
-    const registrationClose = new Date(matchTime.getTime() - FIVE_HOURS_30_MIN - FIFTEEN_MIN);
+    // 🎯 Extract matchMap: format like - "tdm,2v2,M24"
+    const [mode, members] = match.matchMap?.split(",") || [];
+    const requiredPlayers = parseInt(members?.split("v")[0]) || 4; // default 4
 
-    if (new Date() > registrationClose) {
+    // 🛑 Team Name required only if players > 1
+    if (requiredPlayers > 1 && !teamName) {
       return res.status(400).json({
         success: false,
-        message: "Registration time ended. You cannot join now.",
+        message: "Team Name is required for this match.",
       });
     }
 
-    // 5️⃣ Prevent same leader from joining twice
-    const existingTeam = await Teams.findOne({ matchId, leaderId: userId });
-    if (existingTeam) {
+    // 🛑 Player count check
+    if (!Array.isArray(players) || players.length !== requiredPlayers) {
       return res.status(400).json({
         success: false,
-        message: "You already registered/created a team for this match.",
+        message: `This match requires exactly ${requiredPlayers} player(s).`,
       });
     }
 
-    // 6️⃣ Check duplicate BGMI IDs across ALL TEAMS OF THIS MATCH
+    // 🛑 Duplicate IDs inside same team
+    const bgmiIds = players.map((p) => p.inGameId);
+    if (new Set(bgmiIds).size !== bgmiIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Duplicate BGMI IDs found inside your team.",
+      });
+    }
+
+    // 🛑 Duplicate IDs in other teams
     const duplicateTeam = await Teams.findOne({
       matchId,
       "players.inGameId": { $in: bgmiIds },
     });
-
     if (duplicateTeam) {
       const registeredIds = duplicateTeam.players.map((p) => p.inGameId);
       const duplicateId = bgmiIds.find((id) => registeredIds.includes(id));
-
       return res.status(400).json({
         success: false,
-        message: `A player with BGMI ID ${duplicateId} is already registered in another team for this match.`,
+        message: `BGMI ID ${duplicateId} is already registered in another team.`,
       });
     }
 
-    // 7️⃣ Get user
+    // Registration Time Check (Same as your existing)
+    const FIVE_HOURS_30_MIN = 5.5 * 60 * 60 * 1000;
+    const FIFTEEN_MIN = 15 * 60 * 1000;
+    const matchTime = new Date(match.matchTime);
+    const registrationClose = new Date(
+      matchTime.getTime() - FIVE_HOURS_30_MIN - FIFTEEN_MIN
+    );
+
+    if (new Date() > registrationClose) {
+      return res.status(400).json({
+        success: false,
+        message: "Registration time ended.",
+      });
+    }
+
+    // 🟢 Prevent users from registering twice as TEAM LEADER
+    const existingTeam = await Teams.findOne({ matchId, leaderId: userId });
+    if (existingTeam) {
+      return res.status(400).json({
+        success: false,
+        message: "You already have a registered team for this match.",
+      });
+    }
+
+    // 🟢 Fetch User
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -230,86 +252,76 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 8️⃣ Wallet balance check
-    // 8️⃣ Calculate total available balance (referral + wallet)
-    const totalAvailable = (user.referralBalance || 0) + (user.walletBalance || 0);
+    // 🛑 Wallet + Referral check
+    const totalAvailable =
+      (user.referralBalance || 0) + (user.walletBalance || 0);
 
     if (totalAvailable < match.entryFee) {
       return res.status(400).json({
         success: false,
-        message: "Insufficient balance. Use referral balance or wallet to add funds.",
-        referralBalance: user.referralBalance || 0,
-        walletBalance: user.walletBalance || 0,
-        required: match.entryFee,
+        message: "Insufficient balance.",
       });
     }
 
-    // 9️⃣ Deduct entry fee: referralBalance first, then walletBalance
+    // 🔻 Deduct entry fee (Referral first, then Wallet)
     let remainingFee = match.entryFee;
 
-    // 9a️⃣ Deduct from referralBalance (if available)
     if (user.referralBalance > 0) {
       const useReferral = Math.min(user.referralBalance, remainingFee);
       user.referralBalance -= useReferral;
       remainingFee -= useReferral;
     }
 
-    // 9b️⃣ Deduct remaining from walletBalance
     if (remainingFee > 0) {
       user.walletBalance -= remainingFee;
     }
 
-    // Save user after deduction
     await user.save();
 
-    // 9️⃣🔹Log a wallet transaction properly
+    // 💳 Wallet Transaction Log
     await WalletTransaction.create({
       userId,
       matchId,
       amount: match.entryFee,
       type: "debit",
-      status: "approved",
-      source: "match_prize",
       status: "joined",
+      source:'match_prize',
       referralUsed: match.entryFee - remainingFee,
       walletUsed: remainingFee,
       balanceAfter: user.walletBalance,
     });
 
-
-    // 🔟 Assign slot number (increment by existing count)
-    // const existingTeamsCount = await Teams.countDocuments({ matchId });
-    // const slotNumber = existingTeamsCount + 1;
-
-    // 🔟 Assign slot number (limit to max 20 teams) & start at slot 2
+    // 🎯 SLOT ASSIGNMENT (TDM starts from 1, others from 2)
     const existingTeamsCount = await Teams.countDocuments({ matchId });
 
-    // Prevent more than 20 teams (slots 2–21 = 20 slots)
     if (existingTeamsCount >= 20) {
       return res.status(400).json({
         success: false,
-        message: "All slots are filled (20 teams max).",
+        message: "Slots full (20 teams max).",
       });
     }
 
-    // Slot number starts from 2
-    const slotNumber = existingTeamsCount + 2;
+    let slotNumber;
+    if (mode === "tdm") {
+      slotNumber = existingTeamsCount + 1; // 🟢 TDM starts at slot 1
+    } else {
+      slotNumber = existingTeamsCount + 2; // 🔵 Squad/Duo starts at slot 2
+    }
 
-    // 1️⃣1️⃣ Create team
+    // 🟢 Create Team Entry
     await Teams.create({
       matchId,
       leaderId: userId,
-      teamName,
+      teamName: teamName || players[0].playerName, // For 1v1, auto use player name
       players,
       slotNumber,
     });
 
     return res.json({
       success: true,
-      message: "Team registered successfully.",
+      message: `${mode?.toUpperCase()} registered successfully.`,
       newWalletBalance: user.walletBalance,
     });
-
   } catch (err) {
     console.error("Join Match Error:", err);
     return res.status(500).json({
@@ -318,6 +330,7 @@ export const joinMatch = async (req, res) => {
     });
   }
 };
+
 
 export const getMatchFee = async (req, res) => {
   try {

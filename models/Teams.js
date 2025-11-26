@@ -50,7 +50,7 @@ const teamSchema = new mongoose.Schema(
       type: [playerSchema],
       validate: {
         validator: function (v) {
-          return v.length === 4; // must be exactly 4 players
+          return v.length <= 4; // must be exactly 4 players
         },
         message: "Team must have exactly 4 players."
       }

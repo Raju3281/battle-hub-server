@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 const matchSchema = new mongoose.Schema(
   {
     matchName: { type: String, required: true },
-    matchType: { type: String, enum: ["solo", "duo", "squad"], required: true },
+    matchType: { type: String, enum: ["solo", "duo", "squad",'tdm'], required: true },
+    matchMap: { type: String },
     entryFee: { type: Number, required: true },
     prizePool: { type: Number, required: true },
     matchTime: { type: Date, required: true },
