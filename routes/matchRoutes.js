@@ -3,7 +3,8 @@ import { createMatch, getMatches, getMatchById, updateMatch, getCompletedMatches
     getSquadMatches, joinMatch, getBookedMatches, getMatchDetails, 
     getTodayCompletedMatches, updateMatchLink, getAllMatchesWithLinks, 
     getMatchFee,
-    getTdmMatches} from "../controllers/matchController.js";
+    getTdmMatches,
+    getSoloMatches} from "../controllers/matchController.js";
 import { verifyAdmin, verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -19,6 +20,7 @@ router.get("/", verifyToken, getMatches);
 // Get single match by ID
 router.get("/squad", verifyToken, getSquadMatches); 
 router.get("/tdm", verifyToken, getTdmMatches); 
+router.get("/solo", verifyToken, getSoloMatches);
 
 router.get("/with-links",verifyToken, getAllMatchesWithLinks);
 router.get("/:id", verifyToken, getMatchById);

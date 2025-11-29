@@ -144,6 +144,18 @@ export const getSquadMatches = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+export const getSoloMatches = async (req, res) => {
+  try {
+    const matches = await Match.find({
+      matchType: "solo",
+      status: "upcoming",
+    }).sort({ matchTime: 1 });
+
+    res.json({ success: true, matches });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 export const getTdmMatches = async (req, res) => {
   try {
     const matches = await Match.find({
@@ -176,11 +188,31 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 🎯 Extract matchMap: format like - "tdm,2v2,M24"
+    // 🎯 Detect required players (Safely supports SOLO, DUO, SQUAD, TDM)
     const [mode, members] = match.matchMap?.split(",") || [];
-    const requiredPlayers = parseInt(members?.split("v")[0]) || 4; // default 4
 
-    // 🛑 Team Name required only if players > 1
+    let requiredPlayers = 1; // Default solo
+
+    if (members?.includes("v")) {
+      // If matchMap format has "2v2" or "4v4"
+      requiredPlayers = parseInt(members.split("v")[0]);
+    } else {
+      // No "v" → use matchType fallback
+      switch (match.matchType?.toLowerCase()) {
+        case "squad":
+          requiredPlayers = 4;
+          break;
+        case "duo":
+          requiredPlayers = 2;
+          break;
+        case "solo":
+        default:
+          requiredPlayers = 1;
+          break;
+      }
+    }
+
+    // 🛑 Team Name required only if more than 1 player
     if (requiredPlayers > 1 && !teamName) {
       return res.status(400).json({
         success: false,
@@ -188,7 +220,7 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 🛑 Player count check
+    // 🛑 Player count validation
     if (!Array.isArray(players) || players.length !== requiredPlayers) {
       return res.status(400).json({
         success: false,
@@ -219,7 +251,7 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // Registration Time Check (Same as your existing)
+    // ⏳ Registration Time Check
     const FIVE_HOURS_30_MIN = 5.5 * 60 * 60 * 1000;
     const FIFTEEN_MIN = 15 * 60 * 1000;
     const matchTime = new Date(match.matchTime);
@@ -234,12 +266,12 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 🟢 Prevent users from registering twice as TEAM LEADER
+    // 🟢 Prevent double registration for same user
     const existingTeam = await Teams.findOne({ matchId, leaderId: userId });
     if (existingTeam) {
       return res.status(400).json({
         success: false,
-        message: "You already have a registered team for this match.",
+        message: "You already have a registered entry for this match.",
       });
     }
 
@@ -252,7 +284,7 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 🛑 Wallet + Referral check
+    // 💰 Wallet Check
     const totalAvailable =
       (user.referralBalance || 0) + (user.walletBalance || 0);
 
@@ -263,7 +295,7 @@ export const joinMatch = async (req, res) => {
       });
     }
 
-    // 🔻 Deduct entry fee (Referral first, then Wallet)
+    // 🔻 Deduct entry fee (Referral first)
     let remainingFee = match.entryFee;
 
     if (user.referralBalance > 0) {
@@ -275,26 +307,32 @@ export const joinMatch = async (req, res) => {
     if (remainingFee > 0) {
       user.walletBalance -= remainingFee;
     }
-
     await user.save();
 
-    // 💳 Wallet Transaction Log
+    // 💳 Log Wallet Transaction
     await WalletTransaction.create({
       userId,
       matchId,
       amount: match.entryFee,
       type: "debit",
       status: "joined",
-      source:'match_prize',
+      source: "match_prize",
       referralUsed: match.entryFee - remainingFee,
       walletUsed: remainingFee,
       balanceAfter: user.walletBalance,
     });
 
-    // 🎯 SLOT ASSIGNMENT (TDM starts from 1, others from 2)
+    // 🎯 SLOT ASSIGNMENT — SOLO=80, Others=20
     const existingTeamsCount = await Teams.countDocuments({ matchId });
 
-    if (existingTeamsCount >= 20) {
+    if (requiredPlayers === 1 && existingTeamsCount >= 80) {
+      return res.status(400).json({
+        success: false,
+        message: "Slots full (80 solo slots max).",
+      });
+    }
+
+    if (requiredPlayers > 1 && existingTeamsCount >= 20) {
       return res.status(400).json({
         success: false,
         message: "Slots full (20 teams max).",
@@ -302,25 +340,31 @@ export const joinMatch = async (req, res) => {
     }
 
     let slotNumber;
-    if (mode === "tdm") {
-      slotNumber = existingTeamsCount + 1; // 🟢 TDM starts at slot 1
+    if (requiredPlayers === 1) {
+      slotNumber = existingTeamsCount + 1; // Solo starts from 1
+    } else if (mode === "tdm") {
+      slotNumber = existingTeamsCount + 1;
     } else {
-      slotNumber = existingTeamsCount + 2; // 🔵 Squad/Duo starts at slot 2
+      slotNumber = existingTeamsCount + 2; // squad/duo starts at 2
     }
 
-    // 🟢 Create Team Entry
+    // 🟢 Create Team/Entry
     await Teams.create({
       matchId,
       leaderId: userId,
-      teamName: teamName || players[0].playerName, // For 1v1, auto use player name
+      teamName:
+        teamName || players[0].playerName || players[0].inGameId, // Auto for solo
       players,
       slotNumber,
     });
 
     return res.json({
       success: true,
-      message: `${mode?.toUpperCase()} registered successfully.`,
+      message: `${
+        requiredPlayers === 1 ? "SOLO" : mode?.toUpperCase()
+      } registered successfully.`,
       newWalletBalance: user.walletBalance,
+      slotNumber,
     });
   } catch (err) {
     console.error("Join Match Error:", err);
@@ -330,7 +374,6 @@ export const joinMatch = async (req, res) => {
     });
   }
 };
-
 
 export const getMatchFee = async (req, res) => {
   try {
