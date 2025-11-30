@@ -4,7 +4,8 @@ import { createMatch, getMatches, getMatchById, updateMatch, getCompletedMatches
     getTodayCompletedMatches, updateMatchLink, getAllMatchesWithLinks, 
     getMatchFee,
     getTdmMatches,
-    getSoloMatches} from "../controllers/matchController.js";
+    getSoloMatches,
+    getMatchWithTeams} from "../controllers/matchController.js";
 import { verifyAdmin, verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -36,4 +37,6 @@ router.get("/matchFee/:matchId",verifyToken, getMatchFee);
 
 router.post("/match-link/:matchId", verifyAdmin, updateMatchLink);
 router.get("/with-links",verifyToken, getAllMatchesWithLinks);
+router.get("/:matchId/details", verifyAdmin, getMatchWithTeams);
+
 export default router;

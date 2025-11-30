@@ -605,6 +605,58 @@ export const getAllMatchesWithLinks = async (req, res) => {
   }
 };
 
+export const getMatchWithTeams = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+
+    if (!matchId) {
+      return res.status(400).json({ success: false, message: "Match ID required" });
+    }
+
+    // 🏁 Get Match Details
+    const match = await Match.findById(matchId)
+      .populate("createdBy", "username email mobile")
+      .select(
+        "matchName matchType matchMap entryFee matchTime lobbyId lobbyPassword matchLink prizePool createdBy results highestKill remarks status"
+      )
+      .lean();
+
+    if (!match) {
+      return res.status(404).json({ success: false, message: "Match not found" });
+    }
+
+    // 👥 Get all Teams registered for this match
+    const teams = await Teams.find({ matchId })
+      .populate("leaderId", "username email mobile") // Leader only
+      .select("teamName slotNumber players leaderId createdAt")
+      .sort({ slotNumber: 1 })
+      .lean();
+
+    // 🛠 Format Solo Matches (No team name, just player)
+    if (match.matchType === "solo") {
+      teams.forEach((t) => {
+        t.teamName = t.players?.[0]?.playerName || "Solo Player";
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      match,
+      totalTeamsRegistered: teams.length,
+      teams,
+    });
+
+  } catch (error) {
+    console.error("❌ Error fetching match with teams:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error while fetching match and teams",
+    });
+  }
+};
+
+
+
 
 
 
