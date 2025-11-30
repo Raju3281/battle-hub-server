@@ -524,11 +524,10 @@ export const getMatchDetails = async (req, res) => {
 export const getTodayCompletedMatches = async (req, res) => {
   try {
     // 🗓️ Get today range
+    const end = new Date(); // Now
     const start = new Date();
+    start.setDate(end.getDate() - 7); // 7 days back
     start.setHours(0, 0, 0, 0);
-
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
 
     // 🎯 Find matches where:
     // 1. status = "completed"

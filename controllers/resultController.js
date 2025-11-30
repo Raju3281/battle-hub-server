@@ -14,52 +14,39 @@ export const updateMatchResults = async (req, res) => {
 
   if (!matchId) return res.status(400).json({ message: "Match ID is required" });
 
-  // Fetch the match
+  // Fetch match
   const match = await Match.findById(matchId);
   if (!match) return res.status(404).json({ message: "Match not found" });
 
-  // Validate: can't update a completed match
   if (match.status === "completed")
     return res.status(400).json({ message: "Match already completed!" });
 
-  // Prepare new result data
-  match.results = { winners, highestKill, remarks };
-  match.status = "completed";
-  match.results.updatedBy = req.user._id;
-  match.results.updatedAt = new Date();
-
-  // Detect transaction support
-  let session = null;
-  let useTransaction = false;
   try {
-    session = await Match.startSession();
-    session.startTransaction();
-    useTransaction = true;
-  } catch (err) {
-    console.log("⚠️ MongoDB transaction not supported on this setup — using fallback mode.");
-  }
+    // Save results
+    match.results = { winners, highestKill, remarks };
+    match.status = "completed";
+    match.results.updatedBy = req.user._id;
+    match.results.updatedAt = new Date();
+    await match.save();
 
-  try {
-    // 🧾 Function to credit user wallet
+    // 🧾 Function to credit wallet (Simple version)
     const creditWallet = async (userId, amount, source) => {
       if (!userId || !amount || amount <= 0) return;
 
       const user = await User.findById(userId);
       if (!user) return;
 
-      const newBalance = (user.walletBalance || 0) + amount;
+      user.walletBalance = Number(user.walletBalance || 0) + Number(amount);
+      await user.save();
 
-      // Update balance
-      await User.findByIdAndUpdate(userId, { walletBalance: newBalance });
-
-      // Log transaction
       await WalletTransaction.create({
         userId,
         type: "credit",
         amount,
         source,
         referenceId: match._id,
-        balanceAfter: newBalance,
+        status: "approved",
+        balanceAfter: user.walletBalance,
       });
     };
 
@@ -73,27 +60,17 @@ export const updateMatchResults = async (req, res) => {
       await creditWallet(highestKill.userId, highestKill.prize, "highest_kill");
     }
 
-    // 💾 Save match result
-    await match.save();
-
-    // Commit if transactions supported
-    if (useTransaction) {
-      await session.commitTransaction();
-      session.endSession();
-    }
-
-    res.json({
-      message: "✅ Match results updated successfully!",
+    return res.json({
+      message: "🏆 Match results updated & prizes credited successfully!",
       match,
     });
   } catch (error) {
     console.error("Error updating match results:", error);
-
-    if (useTransaction && session) {
-      await session.abortTransaction();
-      session.endSession();
-    }
-
-    res.status(500).json({ message: "❌ Error updating match results", error: error.message });
+    return res.status(500).json({
+      message: "❌ Error updating match results",
+      error: error.message,
+    });
   }
 };
+
+
