@@ -7,10 +7,14 @@ import WalletTransaction from "../models/WalletTransaction.js";
 // 🧩 Register new user (not admin)
 export const registerUser = async (req, res) => {
   try {
-    const { username, phone, email, password, referralCode } = req.body;
+    // const { username, phone, email, password, referralCode } = req.body;
+    const { email, password, referralCode } = req.body;
 
     // 1️⃣ Basic validation
-    if (!username || !phone || !email || !password) {
+    // if (!username || !phone || !email || !password) {
+    //   return res.status(400).json({ message: "All fields are required" });
+    // }
+    if (!email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -30,40 +34,40 @@ export const registerUser = async (req, res) => {
     }
 
     // 4️⃣ Check if username / email / phone already exist
-    const usernameExists = await User.findOne({ username });
+    // const usernameExists = await User.findOne({ username });
     const emailExists = await User.findOne({ email });
-    const phoneExists = await User.findOne({ phone });
+    // const phoneExists = await User.findOne({ phone });
 
-    if (usernameExists) {
-      return res.status(400).json({
-        message: "Username already taken, try with other username",
-      });
-    }
+    // if (usernameExists) {
+    //   return res.status(400).json({
+    //     message: "Username already taken, try with other username",
+    //   });
+    // }
     if (emailExists) {
       return res.status(400).json({
         message: "Email already exists, try with other email",
       });
     }
-    if (phoneExists) {
-      return res.status(400).json({
-        message: "Phone number already exists, try with other phone number",
-      });
-    }
+    // if (phoneExists) {
+    //   return res.status(400).json({
+    //     message: "Phone number already exists, try with other phone number",
+    //   });
+    // }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // ✳️ Create user (but not saved yet)
     const newUser = new User({
-      username,
-      phone,
+      username: email?email.split("@")[0]:"Not Provided",
+      // phone,
       email,
       password: hashedPassword,
       role: "user",
       referredBy: null,
     });
      const generatedCode =
-      username.toUpperCase() + newUser._id.toString().slice(-4);
+      email.split("@")[0].toUpperCase() + newUser._id.toString().slice(-4);
 
     newUser.referralCode = generatedCode;
     // 💸 Referral Logic — Only reward referrer, not new user

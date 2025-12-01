@@ -52,7 +52,7 @@ export const updateMatchResults = async (req, res) => {
 
     // 🏅 Credit all winners
     for (const winner of winners) {
-      await creditWallet(winner.userId, winner.prize, "match_prize");
+      await creditWallet(winner.leaderId, winner.prize, "match_prize");
     }
 
     // 💀 Credit highest kill bonus
