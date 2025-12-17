@@ -1,4 +1,4 @@
-export default  festivalsEn2026  ={
+{
   "year": 2026,
   "country": "India",
   "notes": "FINAL Comprehensive list. When a Lunar Day (Amavasya/Purnima) coincides with a major festival, the 'name' is combined and the 'type' is set to 'Festival' or 'Holiday'.",

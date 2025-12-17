@@ -7,28 +7,53 @@ import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import moment from "moment-timezone";
 import fs from "fs";
-import path from "path";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
-// const festivalsEn2025 = JSON.parse(
-//     fs.readFileSync(path.resolve("data/festivals_en_2025.json"), "utf-8")
-// );
-// const festivalsTe2025 = JSON.parse(
-//     fs.readFileSync(path.resolve("data/festivals_te_2025.json"), "utf-8")
-// );
-// const festivalsEn2026 = JSON.parse(
-//     fs.readFileSync(path.resolve("data/festivals_en_2026.json"), "utf-8")
-// );
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// const festivalsTe2026 = JSON.parse(
-//     fs.readFileSync(path.resolve("data/festivals_te_2026.json"), "utf-8")
-// );
-// // 2027
-// const festivalsEn2027 = JSON.parse(
-//     fs.readFileSync(path.resolve("data/festivals_en_2027.json"), "utf-8")
-// );
-// const festivalsTe2027 = JSON.parse(
-//     fs.readFileSync(path.resolve("data/festivals_te_2027.json"), "utf-8")
-// );
+const festivalsEn2025 = JSON.parse(
+  fs.readFileSync(
+    join(__dirname, "../data/festivals_en_2025.json"),
+    "utf-8"
+  )
+);
+
+const festivalsTe2025 = JSON.parse(
+  fs.readFileSync(
+    join(__dirname, "../data/festivals_te_2025.json"),
+    "utf-8"
+  )
+);
+
+const festivalsEn2026 = JSON.parse(
+  fs.readFileSync(
+    join(__dirname, "../data/festivals_en_2026.json"),
+    "utf-8"
+  )
+);
+
+const festivalsTe2026 = JSON.parse(
+  fs.readFileSync(
+    join(__dirname, "../data/festivals_te_2026.json"),
+    "utf-8"
+  )
+);
+
+const festivalsEn2027 = JSON.parse(
+  fs.readFileSync(
+    join(__dirname, "../data/festivals_en_2027.json"),
+    "utf-8"
+  )
+);
+
+const festivalsTe2027 = JSON.parse(
+  fs.readFileSync(
+    join(__dirname, "../data/festivals_te_2027.json"),
+    "utf-8"
+  )
+);
 import {
     getPanchangam,
     Observer,
@@ -39,12 +64,6 @@ import {
 } from "@ishubhamx/panchangam-js";
 
 import * as Astronomy from "astronomy-engine";
-import festivals_en_2025 from "../data/festivals_en_2025";
-import festivals_te_2025 from "../data/festivals_te_2025";
-import festivals_en_2026 from "../data/festivals_en_2026";
-import festivals_te_2026 from "../data/festivals_te_2026";
-import festivals_en_2027 from "../data/festivals_en_2027";
-import festivals_te_2027 from "../data/festivals_te_2027";
 
 // ------------------------------------------------------------
 dotenv.config();
@@ -740,16 +759,16 @@ export const getFestivals = (req, res) => {
 
         const FESTIVAL_DATA = {
             2025: {
-                en: festivals_en_2025,
-                te: festivals_te_2025,
+                en: festivalsEn2025,
+                te: festivalsTe2025,
             },
             2026: {
-                en: festivals_en_2026,
-                te: festivals_te_2026,
+                en: festivalsEn2026,
+                te: festivalsTe2026,
             },
             2027: {
-                en: festivals_en_2027,
-                te: festivals_te_2027,
+                en: festivalsEn2027,
+                te: festivalsTe2027,
             },
         };
 
