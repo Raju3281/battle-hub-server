@@ -21,6 +21,10 @@
   },
   "homepage": "https://github.com/Raju3281/battle-hub-server#readme",
   "dependencies": {
+    "@ishubhamx/panchangam-js": "^1.0.3",
+    "11holidays": "^1.0.1",
+    "astronomia": "^4.2.0",
+    "astronomy-engine": "^2.1.19",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -30,7 +34,8 @@
     "moment-timezone": "^0.6.0",
     "mongoose": "^8.19.3",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.10"
+    "nodemailer": "^7.0.10",
+    "sweph": "^2.10.3-b-1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

@@ -12,6 +12,7 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import roomRoutes from "./routes/roomRoutes.js";
 import teamRoutes from "./routes/teamRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
+import calenderRoutes from "./routes/calenderRoutes.js";
 dotenv.config();
 connectDB();
 
@@ -30,7 +31,7 @@ app.use("/api/teams", teamRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/recharges", rechargeRoutes);
 app.use("/api/wallet", walletRoutes);
-
+app.use("/api/calendar", calenderRoutes);
 app.get("/api/user/profile", verifyToken, (req, res) => {
   res.json({
     message: "✅ Welcome to your profile!",
