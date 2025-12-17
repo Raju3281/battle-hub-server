@@ -1,4 +1,4 @@
-{
+export default  festivalsEn2025  = {
   "year": 2025,
   "country": "India",
   "note": "Comprehensive list. If a festival and a lunar date (Amavasya/Purnima) fall on the same day, the 'name' combines both, and the 'type' is set only to 'Festival'.",
