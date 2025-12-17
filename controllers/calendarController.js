@@ -13,47 +13,47 @@ import { dirname, join } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const festivalsEn2025 = JSON.parse(
-  fs.readFileSync(
-    join(__dirname, "../data/festivals_en_2025.json"),
-    "utf-8"
-  )
-);
+// const festivalsEn2025 = JSON.parse(
+//   fs.readFileSync(
+//     join(__dirname, "../data/festivals_en_2025.json"),
+//     "utf-8"
+//   )
+// );
 
-const festivalsTe2025 = JSON.parse(
-  fs.readFileSync(
-    join(__dirname, "../data/festivals_te_2025.json"),
-    "utf-8"
-  )
-);
+// const festivalsTe2025 = JSON.parse(
+//   fs.readFileSync(
+//     join(__dirname, "../data/festivals_te_2025.json"),
+//     "utf-8"
+//   )
+// );
 
-const festivalsEn2026 = JSON.parse(
-  fs.readFileSync(
-    join(__dirname, "../data/festivals_en_2026.json"),
-    "utf-8"
-  )
-);
+// const festivalsEn2026 = JSON.parse(
+//   fs.readFileSync(
+//     join(__dirname, "../data/festivals_en_2026.json"),
+//     "utf-8"
+//   )
+// );
 
-const festivalsTe2026 = JSON.parse(
-  fs.readFileSync(
-    join(__dirname, "../data/festivals_te_2026.json"),
-    "utf-8"
-  )
-);
+// const festivalsTe2026 = JSON.parse(
+//   fs.readFileSync(
+//     join(__dirname, "../data/festivals_te_2026.json"),
+//     "utf-8"
+//   )
+// );
 
-const festivalsEn2027 = JSON.parse(
-  fs.readFileSync(
-    join(__dirname, "../data/festivals_en_2027.json"),
-    "utf-8"
-  )
-);
+// const festivalsEn2027 = JSON.parse(
+//   fs.readFileSync(
+//     join(__dirname, "../data/festivals_en_2027.json"),
+//     "utf-8"
+//   )
+// );
 
-const festivalsTe2027 = JSON.parse(
-  fs.readFileSync(
-    join(__dirname, "../data/festivals_te_2027.json"),
-    "utf-8"
-  )
-);
+// const festivalsTe2027 = JSON.parse(
+//   fs.readFileSync(
+//     join(__dirname, "../data/festivals_te_2027.json"),
+//     "utf-8"
+//   )
+// );
 import {
     getPanchangam,
     Observer,
@@ -742,124 +742,125 @@ export const getRasiPhalam = (req, res) => {
 };
 
 export const getFestivals = (req, res) => {
-    try {
-        const { year, month, lang = "en" } = req.query;
+    return "x"
+    // try {
+    //     const { year, month, lang = "en" } = req.query;
 
-        if (!year || !month) {
-            return res.status(400).json({
-                error: "year_and_month_required",
-            });
-        }
+    //     if (!year || !month) {
+    //         return res.status(400).json({
+    //             error: "year_and_month_required",
+    //         });
+    //     }
 
-        const yearNum = Number(year);
-        const monthNum = Number(month);
-        const langKey = lang === "te" ? "te" : "en";
+    //     const yearNum = Number(year);
+    //     const monthNum = Number(month);
+    //     const langKey = lang === "te" ? "te" : "en";
 
-        // ---------------- YEAR + LANGUAGE DATA MAP ----------------
+    //     // ---------------- YEAR + LANGUAGE DATA MAP ----------------
 
-        const FESTIVAL_DATA = {
-            2025: {
-                en: festivalsEn2025,
-                te: festivalsTe2025,
-            },
-            2026: {
-                en: festivalsEn2026,
-                te: festivalsTe2026,
-            },
-            2027: {
-                en: festivalsEn2027,
-                te: festivalsTe2027,
-            },
-        };
+    //     const FESTIVAL_DATA = {
+    //         2025: {
+    //             en: festivalsEn2025,
+    //             te: festivalsTe2025,
+    //         },
+    //         2026: {
+    //             en: festivalsEn2026,
+    //             te: festivalsTe2026,
+    //         },
+    //         2027: {
+    //             en: festivalsEn2027,
+    //             te: festivalsTe2027,
+    //         },
+    //     };
 
-        const dataSource = FESTIVAL_DATA[yearNum]?.[langKey];
+    //     const dataSource = FESTIVAL_DATA[yearNum]?.[langKey];
 
-        if (!dataSource) {
-            return res.json({
-                year: yearNum,
-                month: monthNum,
-                lang: langKey,
-                monthName: null,
-                data: [],
-            });
-        }
+    //     if (!dataSource) {
+    //         return res.json({
+    //             year: yearNum,
+    //             month: monthNum,
+    //             lang: langKey,
+    //             monthName: null,
+    //             data: [],
+    //         });
+    //     }
 
-        // ---------------- LANGUAGE-AWARE KEYS ----------------
+    //     // ---------------- LANGUAGE-AWARE KEYS ----------------
 
-        const YEAR_KEY = langKey === "te" ? "సంవత్సరం" : "year";
-        const CALENDAR_KEY = langKey === "te" ? "క్యాలెండర్" : "calendar";
-        const MONTH_KEY = langKey === "te" ? "నెల" : "month";
-        const DAYS_KEY = langKey === "te" ? "రోజులు" : "days";
-        const DATE_KEY = langKey === "te" ? "తేదీ" : "date";
-        const NAME_KEY = langKey === "te" ? "పేరు" : "name";
-        const TYPE_KEY = langKey === "te" ? "రకం" : "type";
-        const DETAILS_KEY = langKey === "te" ? "వివరణ" : "details";
-        const LUNAR_KEY =
-            langKey === "te"
-                ? `ముఖ్యమైన_చంద్రమాన_తిథులు_${yearNum}_పాక్షికం`
-                : `lunar_observances_${yearNum}_partial`;
+    //     const YEAR_KEY = langKey === "te" ? "సంవత్సరం" : "year";
+    //     const CALENDAR_KEY = langKey === "te" ? "క్యాలెండర్" : "calendar";
+    //     const MONTH_KEY = langKey === "te" ? "నెల" : "month";
+    //     const DAYS_KEY = langKey === "te" ? "రోజులు" : "days";
+    //     const DATE_KEY = langKey === "te" ? "తేదీ" : "date";
+    //     const NAME_KEY = langKey === "te" ? "పేరు" : "name";
+    //     const TYPE_KEY = langKey === "te" ? "రకం" : "type";
+    //     const DETAILS_KEY = langKey === "te" ? "వివరణ" : "details";
+    //     const LUNAR_KEY =
+    //         langKey === "te"
+    //             ? `ముఖ్యమైన_చంద్రమాన_తిథులు_${yearNum}_పాక్షికం`
+    //             : `lunar_observances_${yearNum}_partial`;
 
-        // ---------------- YEAR CHECK ----------------
+    //     // ---------------- YEAR CHECK ----------------
 
-        if (dataSource[YEAR_KEY] !== yearNum) {
-            return res.json({
-                year: yearNum,
-                month: monthNum,
-                lang: langKey,
-                monthName: null,
-                data: [],
-            });
-        }
+    //     if (dataSource[YEAR_KEY] !== yearNum) {
+    //         return res.json({
+    //             year: yearNum,
+    //             month: monthNum,
+    //             lang: langKey,
+    //             monthName: null,
+    //             data: [],
+    //         });
+    //     }
 
-        // ---------------- MONTH BLOCK ----------------
+    //     // ---------------- MONTH BLOCK ----------------
 
-        const monthBlock = dataSource[CALENDAR_KEY]?.[monthNum - 1];
+    //     const monthBlock = dataSource[CALENDAR_KEY]?.[monthNum - 1];
 
-        if (!monthBlock) {
-            return res.json({
-                year: yearNum,
-                month: monthNum,
-                lang: langKey,
-                monthName: null,
-                data: [],
-            });
-        }
+    //     if (!monthBlock) {
+    //         return res.json({
+    //             year: yearNum,
+    //             month: monthNum,
+    //             lang: langKey,
+    //             monthName: null,
+    //             data: [],
+    //         });
+    //     }
 
-        // ---------------- MONTH FESTIVALS ----------------
+    //     // ---------------- MONTH FESTIVALS ----------------
 
-        const monthFestivals = (monthBlock[DAYS_KEY] || []).map((d) => ({
-            date: d[DATE_KEY],
-            name: d[NAME_KEY],
-            type: d[TYPE_KEY],
-            details: d[DETAILS_KEY] || [],
-        }));
+    //     const monthFestivals = (monthBlock[DAYS_KEY] || []).map((d) => ({
+    //         date: d[DATE_KEY],
+    //         name: d[NAME_KEY],
+    //         type: d[TYPE_KEY],
+    //         details: d[DETAILS_KEY] || [],
+    //     }));
 
-        // ---------------- LUNAR FESTIVALS ----------------
+    //     // ---------------- LUNAR FESTIVALS ----------------
 
-        const lunarFestivals = (dataSource[LUNAR_KEY] || [])
-            .filter(
-                (d) => new Date(d[DATE_KEY]).getMonth() + 1 === monthNum
-            )
-            .map((d) => ({
-                date: d[DATE_KEY],
-                name: d[NAME_KEY],
-                type: d[TYPE_KEY],
-            }));
+    //     const lunarFestivals = (dataSource[LUNAR_KEY] || [])
+    //         .filter(
+    //             (d) => new Date(d[DATE_KEY]).getMonth() + 1 === monthNum
+    //         )
+    //         .map((d) => ({
+    //             date: d[DATE_KEY],
+    //             name: d[NAME_KEY],
+    //             type: d[TYPE_KEY],
+    //         }));
 
-        // ---------------- RESPONSE ----------------
+    //     // ---------------- RESPONSE ----------------
 
-        return res.json({
-            year: yearNum,
-            month: monthNum,
-            lang: langKey,
-            monthName: monthBlock[MONTH_KEY],
-            data: [...monthFestivals, ...lunarFestivals],
-        });
-    } catch (err) {
-        console.error("FESTIVAL API ERROR:", err);
-        res.status(500).json({
-            error: "festival_api_error",
-            message: err.toString(),
-        });
-    }
+    //     return res.json({
+    //         year: yearNum,
+    //         month: monthNum,
+    //         lang: langKey,
+    //         monthName: monthBlock[MONTH_KEY],
+    //         data: [...monthFestivals, ...lunarFestivals],
+    //     });
+    // } catch (err) {
+    //     console.error("FESTIVAL API ERROR:", err);
+    //     res.status(500).json({
+    //         error: "festival_api_error",
+    //         message: err.toString(),
+    //     });
+    // }
 };
