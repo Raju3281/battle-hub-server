@@ -1,4 +1,4 @@
-name: Deploy Backend (Battle-Hub Server)
+name: Deploy Backend
 
 on:
   push:
@@ -9,22 +9,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy backend to EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            cd /home/ubuntu/battle-hub-server
-
-            echo "Pulling latest backend code"
+            cd ~/battle-hub-server
             git pull origin main
-
-            echo "Installing backend dependencies"
             npm install
-
-            echo "Reloading backend using PM2"
-            pm2 reload battle-hub-server || pm2 start server.js --name battle-hub-server
-            pm2 save
+            pm2 restart battle-hub-server || pm2 start server.js --name battle-hub-server
